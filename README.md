@@ -17,11 +17,11 @@ brew tap commandertvis/homebrew https://github.com/CommanderTvis/homebrew
 
 ## tereditor (nightly)
 
-The [tereditor](https://github.com/CommanderTvis/tereditor) desktop app (formerly SharpRail), Apple Silicon only, downloaded from its rolling `nightly` release. The cask is hand-written and is `version :latest` with no checksum pin, so `brew upgrade --cask --greedy` re-downloads the current build. This package is not installation-tested by this repository. The old `sharprail` cask name is renamed to `tereditor`, so existing installs move over on `brew upgrade`.
+The [tereditor](https://github.com/CommanderTvis/tereditor) desktop app, Apple Silicon only, downloaded from its rolling `nightly` release. A workflow here (`.github/workflows/tereditor.yml`) checks that release daily at 06:00 UTC. When the disk image changed, it pins the cask's version and SHA256 to it, installs the cask on a macOS runner as a check, and pushes, so a plain `brew upgrade` picks up new builds. The old `sharprail` cask name is renamed to `tereditor`, so existing installs move over on `brew upgrade`.
 
 ```sh
 brew install --cask commandertvis/homebrew/tereditor
-brew upgrade --cask --greedy commandertvis/homebrew/tereditor
+brew upgrade --cask commandertvis/homebrew/tereditor
 brew uninstall --cask commandertvis/homebrew/tereditor
 ```
 
@@ -35,4 +35,4 @@ Removing the tap alone does not uninstall any package.
 
 ## Before installing
 
-These are unofficial, unsigned builds. No Apple Developer ID signature or notarization ticket is attached, and macOS Gatekeeper blocks unnotarized applications downloaded from the internet by default. The cask runs a postflight step that clears the quarantine flag so installs and upgrades work without manual terminal commands; this does not otherwise disable macOS security protections. The `tereditor` cask download is not checksum-pinned.
+These are unofficial, unsigned builds. No Apple Developer ID signature or notarization ticket is attached, and macOS Gatekeeper blocks unnotarized applications downloaded from the internet by default. The cask runs a postflight step that clears the quarantine flag so installs and upgrades work without manual terminal commands; this does not otherwise disable macOS security protections. The SHA256 pin verifies download integrity, not publisher identity.

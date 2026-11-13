@@ -1,0 +1,80 @@
+name: Pin tereditor
+
+on:
+  # After CommanderTvis/tereditor's nightly (03:00 UTC) has replaced its release assets.
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency: tereditor
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_REPO: CommanderTvis/tereditor
+  ASSET: tereditor-nightly.dmg
+  CASK: Casks/tereditor.rb
+
+jobs:
+  pin:
+    name: Pin the cask to the current nightly disk image
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - id: fetch
+        name: Download the disk image and compare checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          gh release download nightly --repo "$SOURCE_REPO" --pattern "$ASSET" --dir "$RUNNER_TEMP"
+          sha=$(shasum -a 256 "$RUNNER_TEMP/$ASSET" | cut -d' ' -f1)
+          current=$(sed -n 's/^  sha256 "\(.*\)"$/\1/p' "$CASK")
+          if [ "$sha" = "$current" ]; then
+            echo "$ASSET is unchanged ($sha)"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          commit=$(gh api "repos/$SOURCE_REPO/git/ref/tags/nightly" --jq .object.sha)
+          updated=$(gh release view nightly --repo "$SOURCE_REPO" --json assets \
+            --jq ".assets[] | select(.name == \"$ASSET\") | .updatedAt")
+          day=$(date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$updated" +%Y%m%d)
+          {
+            echo "changed=true"
+            echo "sha=$sha"
+            echo "version=0.0.0-nightly.$day.${commit:0:7}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Rewrite the version and checksum
+        if: steps.fetch.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.fetch.outputs.version }}
+          SHA: ${{ steps.fetch.outputs.sha }}
+        run: |
+          set -eu
+          sed -i '' -e "s/^  version .*/  version \"$VERSION\"/" -e "s/^  sha256 .*/  sha256 \"$SHA\"/" "$CASK"
+          grep -qF "version \"$VERSION\"" "$CASK"
+          grep -qF "sha256 \"$SHA\"" "$CASK"
+          git diff
+
+      - name: Install from the tap
+        if: steps.fetch.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.fetch.outputs.version }}
+        run: |
+          set -eu
+          git add "$CASK"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m "tereditor $VERSION"
+          brew trust --tap commandertvis/homebrew 2>/dev/null || true
+          brew tap commandertvis/homebrew "$PWD"
+          brew install --cask commandertvis/homebrew/tereditor
+          test -d /Applications/tereditor.app
+
+      - name: Push the tap
+        if: steps.fetch.outputs.changed == 'true'
+        run: git push
