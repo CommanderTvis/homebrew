@@ -1,6 +1,6 @@
 cask "tereditor" do
-  version "0.0.0-nightly.20261120.d9fac10"
-  sha256 "39211fd55c206b35466d3a9293097b59f504755e6cc1dbea3abcbe44c38deaab"
+  version "0.0.0-nightly.20261121.c89c44d"
+  sha256 "0d82465f26a36f3f2fc3704bbad23048fcc68e12832d3da145082befffe46d2d"
 
   url "https://github.com/CommanderTvis/tereditor/releases/download/nightly/tereditor-nightly.dmg"
   name "tereditor"
